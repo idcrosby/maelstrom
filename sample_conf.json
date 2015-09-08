@@ -1,0 +1,23 @@
+{
+	"mailServers":[
+		{
+			"name":"SendGrid",
+			"pingUrl":"...",
+			"url":"https://api.sendgrid.com/api/mail.send.json",
+			"apiKey":"..."	
+		},
+		{
+			"name":"MailGun",
+			"pingUrl":"https://api.mailgun.net/v3/samples.mailgun.org/log",
+			"url":"",
+			"apiKey":"",
+			"pingKey":""
+		},
+		{
+			"name":"Mandrill",
+			"pingUrl":"https://mandrillapp.com/api/1.0/users/ping.json",
+			"url":"https://mandrillapp.com/api/1.0/messages/send.json",
+			"apiKey":""
+		}
+	]
+}

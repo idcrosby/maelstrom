@@ -1,0 +1,109 @@
+<html>
+	<head>
+	    <meta charset="utf-8">
+	    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <meta name="description" content="basic web app for my web tools">
+	    <meta name="author" content="idcrosby">
+		<title>Maelstrom</title>
+
+		<!-- Bootstrap core CSS -->
+    	<link href="/resources/css/bootstrap.min.css" rel="stylesheet">
+
+    	<!-- Bootstrap theme -->
+    	<link href="/resources/css/bootstrap-theme.min.css" rel="stylesheet">
+	</head>
+
+	<body onload="init()">
+		<div class="jumbotron">
+			<div class="panel panel-primary" id="SendMail">
+				<div class="panel-heading">
+					<h3 class="panel-title">Into the Maelstrom...</h3>
+				</div>
+				<div class="panel-body" method="get">
+					<div id="responseDiv" class="collapse">
+						<h3><span id="responseStatus" onClick="hideThis(this)"></span></h3>
+					</div>
+					<form>
+						<div class="form-group">
+						<label for="passwordInput">Password</label>
+						<input id="passwordInput" type="password" class="form-control" name="password">
+						</div>
+					</form>
+					<form id="emailForm" role="from">
+						<div class="form-group">
+							<label for="from">From</label>
+							<input id="from" type="email" class="form-control" name="from" placeholder="me@email.com">
+						</div>
+						<div class="form-group">
+							<label for="to">To</label>
+							<input id="to" type="email" class="form-control" name="to" placeholder="you@email.com">
+						</div>
+						<div class="form-group">
+							<label for="subject">Subject</label>
+							<input id="subject" type="text" name="subject" class="form-control">
+						</div>
+						<div id="text" class="form-group">
+							<label for="emailText">Message</label>
+							<textarea class="form-control" rows="10" id="emailText" name="text"></textarea>
+						</div>
+						<button type="button" id="sendMailBtn" class="btn btn-primary" onClick="sendMail(this.form)">Send</button>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript">
+			function init() {
+				console.log("loaded");
+			}
+
+			function sendMail(form) {
+				console.log("Sending mail...");
+
+				var params = "password=" + $('#passwordInput').val();
+
+				var data = {};
+  				for (var i = 0, ii = form.length; i < ii; ++i) {
+    				var input = form[i];
+    				if (input.name) {
+      					data[input.name] = input.value;
+    				}
+  				}
+				var jsonData = JSON.stringify(data);
+				var xhr = new XMLHttpRequest();
+				xhr.open("POST", "/messages/" + "?" + params, true);
+				xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+				xhr.send(jsonData);
+				xhr.onloadend = function() {
+					console.log("Done. Status: " + xhr.status);
+					$('#responseDiv').collapse('show');
+
+					var status = xhr.status;
+					var responseMessage = "";
+					if (status > 199 && status < 300) {
+						$('#responseStatus').addClass("label label-success");
+						responseMessage = "Message Send Successfully.";
+					} else if (status > 499) {
+						$('#responseStatus').addClass("label label-danger");
+						responseMessage = "Server Error Trying to send Message: " + status;
+					} else {
+						$('#responseStatus').addClass("label label-warning");
+						responseMessage = "Error Sending Message: " + status;
+					}
+					$('#responseStatus').html(responseMessage);
+				}
+			}
+
+			function hideThis(el) {
+				$('#responseDiv').collapse('hide');
+			}
+			
+		</script>
+		<!-- Bootstrap core JavaScript
+    	================================================== -->
+	    <!-- Placed at the end of the document so the pages load faster -->
+	    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	    <script src="/resources/js/bootstrap.min.js"></script>
+	</body>
+</html>
