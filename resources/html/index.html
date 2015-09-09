@@ -15,43 +15,93 @@
 	</head>
 
 	<body onload="init()">
-		<div class="jumbotron">
-			<div class="panel panel-primary" id="SendMail">
-				<div class="panel-heading">
-					<h3 class="panel-title">Into the Maelstrom...</h3>
-				</div>
-				<div class="panel-body" method="get">
-					<div id="responseDiv" class="collapse">
-						<h3><span id="responseStatus" onClick="hideThis(this)"></span></h3>
+		<!-- Facebook SDK for login integration -->
+		<script>
+  			window.fbAsyncInit = function() {
+    			FB.init({
+     			 appId      : '1619643278302813',
+      			xfbml      : true,
+      			version    : 'v2.4'
+    			});
+  			};
+
+  			(function(d, s, id){
+     			var js, fjs = d.getElementsByTagName(s)[0];
+     			if (d.getElementById(id)) {return;}
+     			js = d.createElement(s); js.id = id;
+     			js.src = "//connect.facebook.net/en_US/sdk.js";
+     			fjs.parentNode.insertBefore(js, fjs);
+   			}(document, 'script', 'facebook-jssdk'));
+		</script>
+		<div class="container">
+			<div class="jumbotron">
+				<div class="panel panel-primary" id="SendMail">
+					<div class="panel-heading">
+						<h3 class="panel-title">Into the Maelstrom...</h3>
 					</div>
-					<form>
-						<div class="form-group">
-						<label for="passwordInput">Password</label>
-						<input id="passwordInput" type="password" class="form-control" name="password">
+					<div class="panel-body" method="get">
+						<div id="responseDiv" class="collapse">
+							<h3><span id="responseStatus" onClick="hideThis(this)"></span></h3>
 						</div>
-					</form>
-					<form id="emailForm" role="from">
-						<div class="form-group">
-							<label for="from">From</label>
-							<input id="from" type="email" class="form-control" name="from" placeholder="me@email.com">
+						<form>
+							<div class="form-group">
+							<label for="passwordInput">Password</label>
+							<input id="passwordInput" type="password" class="form-control" name="password">
+							</div>
+						</form>
+						<form id="emailForm" role="from">
+							<div class="form-group">
+								<label for="from">From</label>
+								<input id="from" type="email" class="form-control" name="from" placeholder="me@email.com">
+							</div>
+							<div class="form-group">
+								<label for="to">To</label>
+								<input id="to" type="email" class="form-control" name="to" placeholder="you@email.com">
+							</div>
+							<div class="form-group">
+								<label for="subject">Subject</label>
+								<input id="subject" type="text" name="subject" class="form-control">
+							</div>
+							<div id="text" class="form-group">
+								<label for="emailText">Message</label>
+								<textarea class="form-control" rows="10" id="emailText" name="text"></textarea>
+							</div>
+							<button type="button" id="sendMailBtn" class="btn btn-primary" onClick="sendMail(this.form)">Send</button>
+						</form>
+						<!-- Facebook Like/Share Buttons
+						<div
+						  class="fb-like"
+						  data-share="true"
+						  data-width="450"
+						  data-show-faces="true">
 						</div>
-						<div class="form-group">
-							<label for="to">To</label>
-							<input id="to" type="email" class="form-control" name="to" placeholder="you@email.com">
+						-->
+					</div>
+				</div> <!-- /panel -->
+				<div class="panel panel-primary" id="StatusPanel">
+					<div class="panel-heading">
+						<h3 class="panel-title">Servers Status</h3>
+					</div>
+					<div class="panel-body" method="get">
+						<button type="button" id="getStatusBtn" class="btn btn-primary" onClick="getStatus()">Get Status</button>
+						<a class="btn" role="button" data-toggle="collapse" href="#statusDiv" aria-expanded="false" area-controls="statusDiv">
+						<!-- <button type="button" id="hideStatusBtn" class="btn" onClick="hideStatus()">Hide</button> -->
+						<div id="statusDiv" class="collapse">
+							<table class="table table-striped" id="statusTable">
+								<thead>
+									<tr>
+										<th>Mail Server</th>
+										<th>Available</th>
+									</tr>
+								</thead>
+								<tbody>
+								</tbody>
+							</table>
 						</div>
-						<div class="form-group">
-							<label for="subject">Subject</label>
-							<input id="subject" type="text" name="subject" class="form-control">
-						</div>
-						<div id="text" class="form-group">
-							<label for="emailText">Message</label>
-							<textarea class="form-control" rows="10" id="emailText" name="text"></textarea>
-						</div>
-						<button type="button" id="sendMailBtn" class="btn btn-primary" onClick="sendMail(this.form)">Send</button>
-					</form>
-				</div>
-			</div>
-		</div>
+					</div>
+				</div> <!-- /panel -->
+			</div> <!-- /jumbotron -->
+		</div> <!-- /container -->
 
 		<script type="text/javascript">
 			function init() {
@@ -96,7 +146,36 @@
 			}
 
 			function hideThis(el) {
-				$('#responseDiv').collapse('hide');
+				var statusId = el.parentNode.parentNode.id;
+				var toHide = document.getElementById(statusId);
+				$('#' + statusId).collapse('hide');
+			}
+
+			function getStatus() {
+				$.get("/status", function(data) {
+					var jsonData = JSON.parse(data);
+					var rowCount = 1;
+					var table = document.getElementById("statusTable");
+					while (table.rows.length > 1) {
+
+						table.deleteRow(1);
+					}
+					for (var key in jsonData) {
+						var row = table.insertRow(rowCount);
+						var nameCell = row.insertCell(0);
+						nameCell.innerHTML = key;
+
+						var valueCell = row.insertCell(1);
+						valueCell.innerHTML = jsonData[key];
+					}
+					$('#statusDiv').collapse('show');
+					$('#getStatusBtn').html('Refresh');
+				}); 
+			}
+
+			function hideStatus() {
+				$('#statusTable').collapse();
+				$('#getStatusBtn').html('Get Status');
 			}
 			
 		</script>

@@ -4,7 +4,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -16,12 +15,14 @@ type MailGunServer struct {
 
 func (s *MailGunServer) Send(message Message) int {
 	if Debug {
-		fmt.Printf("sending email from %s to %s with subject %s via MailGun.\n", message.From, message.To, message.Subject)
+		InfoLog.Printf("sending email from %s to %s with subject %s via MailGun.\n", message.From, message.To, message.Subject)
 	}
 
 	data := url.Values{}
 	data.Set("from", message.From)
-	data.Add("to", message.To)
+	for _, to := range message.To {
+		data.Add("to", to)
+	}
 	data.Set("subject", message.Subject)
 	data.Set("text", message.Text)
 
@@ -32,16 +33,16 @@ func (s *MailGunServer) Send(message Message) int {
 	r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 
 	if Debug {
-		fmt.Println("Sending Request " + r.URL.String())
+		InfoLog.Println("Sending Request " + r.URL.String())
 	}
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
-		fmt.Println("Error sending mail via MailGun", err)
+		ErrorLog.Println("Error sending mail via MailGun", err)
 		return 500
 	}
 
 	if Debug {
-		fmt.Println("Received: " + res.Status)
+		InfoLog.Println("Received: " + res.Status)
 	}
 	return res.StatusCode
 }
@@ -53,16 +54,16 @@ func (s *MailGunServer) Ping() bool {
 	r.SetBasicAuth("api", s.Server.PingKey)
 
 	if Debug {
-		fmt.Println("Sending Request " + r.URL.String())
+		InfoLog.Println("Sending Request " + r.URL.String())
 	}
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
-		fmt.Println("Error reaching MailGun server ", err)
+		ErrorLog.Println("Error reaching MailGun server ", err)
 		return false
 	}
 
 	if Debug {
-		fmt.Println("Received: " + res.Status)
+		ErrorLog.Println("Received: " + res.Status)
 	}
 
 	return res.StatusCode == 200

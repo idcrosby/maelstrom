@@ -5,8 +5,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	// "io/ioutil"
 	"net/http"
 )
 
@@ -19,8 +18,10 @@ func (s *MandrillServer) Send(message Message) int {
 	mail.Message.Text = message.Text
 	mail.Message.Subject = message.Subject
 	mail.Message.From = message.From
-	mail.Message.To = make([]MandrillTo, 1)
-	mail.Message.To[0] = MandrillTo{Email: message.To}
+	mail.Message.To = make([]MandrillTo, len(message.To))
+	for i, to := range message.To {
+		mail.Message.To[i] = MandrillTo{Email: to}
+	}
 	jsonBuff, err := json.Marshal(mail)
 	check(err)
 
@@ -29,22 +30,23 @@ func (s *MandrillServer) Send(message Message) int {
 	r.Header.Add("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
-		fmt.Println("Error sending mail via Mandrill ", err)
+		ErrorLog.Println("Error sending mail via Mandrill ", err)
 		return 500
 	}
 
 	if Debug {
-		fmt.Println("Received: " + res.Status)
+		InfoLog.Println("Received: " + res.Status)
 	}
 	return res.StatusCode
 }
 
 func (s *MandrillServer) Ping() bool {
+
 	var jsonStr = []byte(`{"key":"` + s.Server.ApiKey + `"}`)
 	res, err := http.Post(s.Server.PingUrl, "application/json", bytes.NewBuffer(jsonStr))
 	if err != nil {
 		if Debug {
-			fmt.Println("Mandrill ping failed: ", err)
+			ErrorLog.Println("Mandrill ping failed: ", err)
 		}
 		return false
 	}
@@ -52,7 +54,7 @@ func (s *MandrillServer) Ping() bool {
 	body, err := ioutil.ReadAll(res.Body)
 	if string(body) != `"PONG!"` {
 		if Debug {
-			fmt.Println("Mandrill Ping failed with response: " + string(body))
+			ErrorLog.Println("Mandrill Ping failed with response: " + string(body))
 		}
 		return false
 	}

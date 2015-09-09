@@ -5,10 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"regexp"
 	"time"
 )
 
@@ -17,15 +20,14 @@ var Debug bool
 var Password string
 var quit chan struct{}
 var Servers map[MailSender]bool
-
+var emailRegex string = "\\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,4}\\b"
 var indexHtml = "resources/html/index.html"
+var throttle chan int
+var InfoLog *log.Logger
+var ErrorLog *log.Logger
 
-func main() {
 
-	// Parse command line args
-	flag.BoolVar(&Debug, "debug", true, "Turn on debug logging.")
-	flag.StringVar(&Password, "password", "", "Password needed by users to send emails.")
-	flag.Parse()
+func init() {
 
 	// Read Config file
 	file, err := os.Open("conf.json")
@@ -34,13 +36,45 @@ func main() {
 	config = Config{}
 	err = decoder.Decode(&config)
 	check(err)
+	
+	// init loggers
+		var writer io.Writer
+	if len(config.LogFileName) > 0 {
+		// Create Directory
+		// os.MkdirAll(, 0777)
+		logFile, err := os.OpenFile(config.LogFileName, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Println("Error opening log file: ", err)
+			writer = os.Stdout
+		} else {
+			defer logFile.Close()
+			writer = logFile
+		}
+	} else {
+		writer = os.Stdout
+	}
+
+	InfoLog = log.New(writer, "INFO: ", log.LstdFlags)
+	ErrorLog = log.New(writer, "ERROR: ", log.LstdFlags)
+
+	// Initiate throttle
+	throttle = make(chan int, config.EmailThrottle)
 
 	buildServersMap()
 
 	initiatePing()
+}
+
+func main() {
+
+	// Parse command line args
+	flag.BoolVar(&Debug, "debug", true, "Turn on debug logging.")
+	flag.StringVar(&Password, "password", "", "Password needed by users to send emails.")
+	flag.Parse()
 
 	http.HandleFunc("/", errorHandler(rootHandler))
 	http.HandleFunc("/messages/", errorHandler(messageHandler))
+	http.HandleFunc("/status", errorHandler(statusHandler))
 
 	// To Serve CSS and JS files
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
@@ -52,7 +86,7 @@ func main() {
 	}
 
 	if Debug {
-		fmt.Println("Server running on Port:", port)
+		InfoLog.Println("Server running on Port:", port)
 	}
 
 	http.ListenAndServe(":"+port, nil)
@@ -92,9 +126,33 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		// Validate Fields
+		for _, to := range email.To {
+			matchTo, _ := regexp.MatchString(emailRegex, to)
+			if !matchTo {
+				if Debug {
+					ErrorLog.Println("To address not valid email: " + to)
+				}
+				http.Error(w, "Invalid 'To' Email Address.", 400)
+				return
+			}
+		}
+		matchFrom, _ := regexp.MatchString(emailRegex, email.From)
+		if !matchFrom {
+			if Debug {
+				ErrorLog.Println("From address not valid email.")
+			}
+			http.Error(w, "Invalid 'From' Email Address.", 400)
+			return
+		}
+
 		sender := chooseMailSender()
 		if sender == nil {
 			http.Error(w, "No Mail Server Available.", 500)
+			return
+		}
+		if ! requestSlot() {
+			http.Error(w, "Over throttle limit.", 403)
 			return
 		}
 		status := sender.Send(email)
@@ -106,19 +164,32 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(405)
 }
 
+// Handler to return status of MailServers
+func statusHandler(w http.ResponseWriter, req *http.Request) {
+
+	result := make(map[string]bool)
+	for s, b := range Servers {
+		result[s.GetName()] = b
+	}
+	statusJson, err := json.Marshal(result)
+	check(err)
+
+	fmt.Fprintf(w, string(statusJson))
+}
+
 // Error Handler Wrapper
 func errorHandler(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if Debug {
-			fmt.Println(time.Now().String())
+			InfoLog.Println(time.Now().String())
 			reqDump, _ := httputil.DumpRequest(req, true)
-			fmt.Printf("Request: %s\n\n", reqDump)
+			InfoLog.Printf("Request: %s\n\n", reqDump)
 		}
 		defer func() {
 			if e, ok := recover().(error); ok {
 				w.WriteHeader(500)
-				fmt.Print("error: ")
-				fmt.Println(e)
+				ErrorLog.Print("error: ")
+				ErrorLog.Println(e)
 			}
 		}()
 		fn(w, req)
@@ -133,22 +204,21 @@ type MailSender interface {
 }
 
 // Select a MailServer which is currently 'up'
-// TODO allow specifying of Server
+// TODO allow specifying of Server?
 func chooseMailSender() MailSender {
 
 	// Weighted Ranking? Random?
 	for serv, status := range Servers {
 		if status {
 			if Debug {
-				fmt.Printf("Selected Mail Server: %s\n", serv.GetName())
+				InfoLog.Printf("Selected Mail Server: %s\n", serv.GetName())
 			}
 			return serv
 		}
 	}
 
-	// TODO try anyway?
 	if Debug {
-		fmt.Println("No MailServers are currently available")
+		ErrorLog.Println("No MailServers are currently available")
 	}
 	return nil
 }
@@ -158,7 +228,7 @@ func buildServersMap() {
 	Servers = make(map[MailSender]bool)
 	for _, conf := range config.MailServers {
 		if Debug {
-			fmt.Println("Adding Server: " + conf.Name)
+			InfoLog.Println("Adding Server: " + conf.Name)
 		}
 		var server MailSender
 		if conf.Name == "MailGun" {
@@ -169,13 +239,16 @@ func buildServersMap() {
 			server = &MandrillServer{conf}
 		} else if conf.Name == "AWS" {
 			server = &AwsServer{conf}
+		} else if conf.Name == "Mock" {
+			server = &FakeServer{conf}
 		} else {
 			if Debug {
-				fmt.Println("Unknown MailServer: " + conf.Name)
+				ErrorLog.Println("Unknown MailServer: " + conf.Name)
 			}
 			continue
 		}
 		Servers[server] = false
+		checkServers()
 	}
 }
 
@@ -201,26 +274,44 @@ func checkServers() {
 	for server, _ := range Servers {
 		status := server.Ping()
 		if Debug {
-			fmt.Printf("Mail Server: %s status: %t\n", server.GetName(), status)
+			InfoLog.Printf("Mail Server: %s status: %t\n", server.GetName(), status)
 		}
 		Servers[server] = status
 	}
 }
 
+// Enforce Throttling by requiring a 'slot' to send
+func requestSlot() bool {
+	
+	if len(throttle) >= cap(throttle) {
+		if Debug {
+			InfoLog.Println("Request blocked. No open slots.")
+		}
+		return false
+	}
+	throttle <- 1
+	slotTimer := time.NewTimer(time.Second * 1)
+	go func() {
+		<- slotTimer.C
+		_ = <-throttle
+	}()
+	return true
+}
+
 // Standard error check function
 func check(err error) {
 	if err != nil {
-		fmt.Println("Panicking: ", err)
+		ErrorLog.Println("Panicking: ", err)
 		panic(err)
 	}
 }
 
 // Generic Message object
 type Message struct {
-	To      string `json:"to"`
-	Subject string `json:"subject"`
-	From    string `json:"from"`
-	Text    string `json:"text"`
+	To      []string `json:"to"`
+	Subject string   `json:"subject"`
+	From    string   `json:"from"`
+	Text    string   `json:"text"`
 }
 
 // Generic Mail Server Configuration
@@ -236,4 +327,14 @@ type MailServer struct {
 type Config struct {
 	MailServers []MailServer
 	PingPeriod  int
+	EmailThrottle int
+	LogFileName string
+}
+
+// Structure of Server Status
+type Status struct {
+	ServerStatus []struct {
+		Name string
+		Status bool
+	}
 }

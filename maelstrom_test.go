@@ -89,6 +89,7 @@ func buildTestConfig() Config {
 	s2.Name = "MailGun"
 	c := Config{}
 	c.PingPeriod = 1
+	c.EmailThrottle = 1
 	c.MailServers = make([]MailServer, 2, 2)
 	c.MailServers[0] = s1
 	c.MailServers[1] = s2

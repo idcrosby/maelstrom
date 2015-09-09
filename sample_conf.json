@@ -19,5 +19,7 @@
 			"url":"https://mandrillapp.com/api/1.0/messages/send.json",
 			"apiKey":""
 		}
-	]
+	],
+	"pingPeriod":60,
+	"emailThrottle":2
 }
