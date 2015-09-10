@@ -204,20 +204,64 @@ func statusHandler(w http.ResponseWriter, req *http.Request) {
 
 func contactsHandler(w http.ResponseWriter, req *http.Request) {
 
+	values := req.URL.Query()
+	id := values.Get("id")
+
 	switch req.Method {
 	case "GET":
-		InfoLog.Println("Get Contact")
+		if Debug {
+			InfoLog.Println("Get Contact")
+		}
+		contact := datastore.RetrieveContact(id)
+		jsonContact, err := json.Marshal(contact)
+		if err != nil {
+			ErrorLog.Println("Error marshalling Contact.")
+			w.WriteHeader(400)
+			return
+		}
+		fmt.Fprintf(w, string(jsonContact))
+		return
 	case "POST":
-		InfoLog.Println("Get Contact")
+		if Debug {
+			InfoLog.Println("Create Contact")
+		}
+		bytes, err := ioutil.ReadAll(req.Body)
+		check(err)
+		var contact Contact
+		err = json.Unmarshal(bytes, &contact)
+		if err != nil {
+			http.Error(w, "Invalid JSON", 400)
+			return
+		}
+		id := datastore.StoreContact(contact)
+		fmt.Fprintf(w, "{'id':" + id + "}")
 	case "PUT":
-		InfoLog.Println("Get Contact")
+		if Debug {
+			InfoLog.Println("Update Contact")
+		}
+		bytes, err := ioutil.ReadAll(req.Body)
+		check(err)
+		var contact Contact
+		err = json.Unmarshal(bytes, &contact)
+		if err != nil {
+			http.Error(w, "Invalid JSON", 400)
+			return
+		}
+		id := datastore.UpdateContact(contact)
+		fmt.Fprintf(w, "{'id':" + id + "}")
 	case "DELETE":
-		InfoLog.Println("Get Contact")
+		if Debug {
+			InfoLog.Println("Delete Contact")
+		}
+		if datastore.DeleteContact(id) {
+			w.WriteHeader(200)
+		} else {
+			ErrorLog.Println("Error deleting Contact: " + id)
+			w.WriteHeader(400)
+		}
 	default:
 		w.WriteHeader(405)
 	}
-	
-	w.WriteHeader(200)	
 }
 
 // Error Handler Wrapper
@@ -360,24 +404,19 @@ func check(err error) {
 }
 
 type Datastore interface {
-	StoreTemplate(Template) string
-	RetrieveTemplate(string) Template
 	Status() bool
 	StoreContact(Contact) string
+	DeleteContact(string) bool
+	UpdateContact(Contact) string
 	RetrieveContact(string) Contact
 	Ping() bool
 }
 
 type Contact struct {
-	Id bson.ObjectId    `bson:"_id,omitempty"`
-	Email string
-	Name string
-	Tags []string
-}
-
-type Template struct {
-	Id bson.ObjectId   `bson:"_id,omitempty"`
-	Message string
+	Id bson.ObjectId    `json:"id" bson:"_id,omitempty"`
+	Email string        `json:"email"`
+	Name string         `json:"name"`
+	Tags []string       `json:"tags"`
 }
 
 // Generic Message object

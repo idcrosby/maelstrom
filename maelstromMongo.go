@@ -27,7 +27,7 @@ func (db *MongoDatastore) Ping() bool {
     return true
 }
 
-func (db *MongoDatastore) StoreTemplate(template Template) string {
+func (db *MongoDatastore) StoreContact(contact Contact) string {
     session, err := mgo.Dial(mongoUrl)
     check(err)
     defer session.Close()
@@ -36,9 +36,9 @@ func (db *MongoDatastore) StoreTemplate(template Template) string {
     session.SetMode(mgo.Monotonic, true)
 
     objectId := bson.NewObjectId()
-    template.Id = objectId
-    c := session.DB(dbName).C("template")
-    err = c.Insert(&template)
+    contact.Id = objectId
+    c := session.DB(dbName).C("contact")
+    err = c.Insert(&contact)
     if err != nil {
             log.Fatal(err)
     }
@@ -46,26 +46,7 @@ func (db *MongoDatastore) StoreTemplate(template Template) string {
     return objectId.String()
 }
 
-func (db *MongoDatastore) RetrieveTemplate(id string) Template {
-    session, err := mgo.Dial(mongoUrl)
-    check(err)
-    defer session.Close()
-
-    objectId := bson.ObjectIdHex(id)
-    // Optional. Switch the session to a monotonic behavior.
-    session.SetMode(mgo.Monotonic, true)
-    c := session.DB(dbName).C("message")
-    
-    result := Template{}
-    err = c.Find(bson.M{"_id": objectId}).One(&result)
-    if err != nil {
-            log.Fatal(err)
-    }
-
-    return result
-}
-
-func (db *MongoDatastore) StoreContact(contact Contact) string {
+func (db *MongoDatastore) UpdateContact(contact Contact) string {
     session, err := mgo.Dial(mongoUrl)
     check(err)
     defer session.Close()
@@ -102,6 +83,27 @@ func (db *MongoDatastore) RetrieveContact(id string) Contact {
     }
 
     return result
+}
+
+func (db *MongoDatastore) DeleteContact(id string) bool {
+    session, err := mgo.Dial(mongoUrl)
+    check(err)
+    defer session.Close()
+
+    // Optional. Switch the session to a monotonic behavior.
+    session.SetMode(mgo.Monotonic, true)
+
+    objectId := bson.ObjectIdHex(id)
+    c := session.DB(dbName).C("contact")
+
+    result := Contact{}
+    // TODO Delete...
+    err = c.Find(bson.M{"_id": objectId}).One(&result)
+    if err != nil {
+            log.Fatal(err)
+    }
+
+    return true
 }
 
 func (db *MongoDatastore) Status() bool {
