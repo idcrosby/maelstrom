@@ -5,7 +5,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	// "io/ioutil"
+	"io/ioutil"
 	"net/http"
 )
 
