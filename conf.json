@@ -7,10 +7,8 @@
 		},
 		{
 			"name":"MailGun",
-			"pingUrl":"https://api.mailgun.net/v3/samples.mailgun.org/log",
-			"url":"https://api.mailgun.net/v3/sandboxad5802cf58064741b713876c7557833b.mailgun.org/messages",
-			"apiKey":"",
-			"pingKey":""
+			"url":"https://api.mailgun.net/v3/sandboxad5802cf58064741b713876c7557833b.mailgun.org/",
+			"apiKey":""
 		},
 		{
 			"name":"Mandrill",

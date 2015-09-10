@@ -281,8 +281,8 @@ func buildServersMap() {
 		}
 		server.SetKey(apiKey)
 		Servers[server] = false
-		checkServers()
 	}
+	checkServers()
 }
 
 // Starts a periodic Ping for the Mail Servers

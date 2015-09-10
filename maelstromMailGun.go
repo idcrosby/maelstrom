@@ -10,7 +10,6 @@ import (
 )
 
 var mailGunKey string
-var mailGunPingKey string = "key-0565deb795ffa7f8e58841b43183c468"
 
 type MailGunServer struct {
 	Server MailServer
@@ -29,7 +28,7 @@ func (s *MailGunServer) Send(message Message) int {
 	data.Set("subject", message.Subject)
 	data.Set("text", message.Text)
 
-	r, err := http.NewRequest("POST", s.Server.Url, bytes.NewBufferString(data.Encode()))
+	r, err := http.NewRequest("POST", s.Server.Url + "messages", bytes.NewBufferString(data.Encode()))
 	check(err)
 	r.SetBasicAuth("api", mailGunKey)
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -51,10 +50,11 @@ func (s *MailGunServer) Send(message Message) int {
 }
 
 func (s *MailGunServer) Ping() bool {
+	InfoLog.Println("Pinging MailGun")
 
-	r, err := http.NewRequest("GET", s.Server.PingUrl, nil)
+	r, err := http.NewRequest("GET", s.Server.Url + "stats", nil)
 	check(err)
-	r.SetBasicAuth("api", mailGunPingKey)
+	r.SetBasicAuth("api", mailGunKey)
 
 	if Debug {
 		InfoLog.Println("Sending Request " + r.URL.String())
