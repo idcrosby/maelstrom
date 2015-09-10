@@ -43,7 +43,7 @@ func (db *MongoDatastore) StoreContact(contact Contact) string {
             log.Fatal(err)
     }
 
-    return objectId.String()
+    return objectId.Hex()
 }
 
 func (db *MongoDatastore) UpdateContact(contact Contact) string {
@@ -62,7 +62,7 @@ func (db *MongoDatastore) UpdateContact(contact Contact) string {
             log.Fatal(err)
     }
 
-    return objectId.String()
+    return objectId.Hex()
 }
 
 func (db *MongoDatastore) RetrieveContact(id string) Contact {
