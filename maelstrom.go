@@ -19,6 +19,7 @@ import (
 
 var config Config
 var Debug bool
+var gce bool
 var Password string
 var quit chan struct{}
 var Servers map[MailSender]bool
@@ -42,27 +43,23 @@ func init() {
 		err = decoder.Decode(&config)
 		check(err)
 	}
-	
+
 	// Check if running on GCE
 	if metadata.OnGCE() {
 		fmt.Println("Running on GCE. Pulling attributes.")
-
-		for s, _ := range Servers {
-			att, _ := metadata.InstanceAttributes()
-			if len(att) < 1 {
-				fmt.Println("No Metadata attributes found.")
-			}
-			for _, a := range att {
-				val, _ := metadata.InstanceAttributeValue(a)
-				fmt.Println("Found attribute: " + a + " with value: " + val)
-			}
-			apiKey, _ := metadata.InstanceAttributeValue(s.GetName())
-			s.SetKey(apiKey)
+		gce = true
+		att, _ := metadata.InstanceAttributes()
+		if len(att) < 1 {
+			fmt.Println("No Metadata attributes found.")
+		}
+		for _, a := range att {
+			val, _ := metadata.InstanceAttributeValue(a)
+			fmt.Println("Found attribute: " + a + " with value: " + val)
 		}
 	} else {
 		fmt.Println("Not running on GCE.")
+		gce = false
 	}
-
 	// init loggers
 	var writer io.Writer
 	if len(config.LogFileName) > 0 {
@@ -274,9 +271,15 @@ func buildServersMap() {
 			}
 			continue
 		}
-		if len(conf.ApiKey) > 0 {
-			server.SetKey(conf.ApiKey)
+		var apiKey string
+		if gce {
+			apiKey, _ := metadata.InstanceAttributeValue(conf.Name)
+			fmt.Println("Setting api key from GCE " + apiKey)
+		} else {
+			apiKey = conf.ApiKey
+			fmt.Println("Setting api key from Config " + apiKey)
 		}
+		server.SetKey(apiKey)
 		Servers[server] = false
 		checkServers()
 	}

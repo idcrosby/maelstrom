@@ -84,7 +84,7 @@
 					</div>
 					<div class="panel-body" method="get">
 						<button type="button" id="getStatusBtn" class="btn btn-primary" onClick="getStatus()">Get Status</button>
-						<a class="btn" role="button" data-toggle="collapse" href="#statusDiv" aria-expanded="false" area-controls="statusDiv">
+						<a class="btn" role="button" data-toggle="collapse" href="#statusDiv" aria-expanded="false" aria-controls="statusDiv" onClick="hideStatus()" id="hideLink"></a>
 						<!-- <button type="button" id="hideStatusBtn" class="btn" onClick="hideStatus()">Hide</button> -->
 						<div id="statusDiv" class="collapse">
 							<table class="table table-striped" id="statusTable">
@@ -146,12 +146,14 @@
 			}
 
 			function hideThis(el) {
+				console.log('hide this');
 				var statusId = el.parentNode.parentNode.id;
 				var toHide = document.getElementById(statusId);
 				$('#' + statusId).collapse('hide');
 			}
 
 			function getStatus() {
+				console.log('get status');
 				$.get("/status", function(data) {
 					var jsonData = JSON.parse(data);
 					var rowCount = 1;
@@ -170,12 +172,15 @@
 					}
 					$('#statusDiv').collapse('show');
 					$('#getStatusBtn').html('Refresh');
+					$('#hideLink').html('Hide');
 				}); 
 			}
 
 			function hideStatus() {
+				console.log('hide status');
 				$('#statusTable').collapse();
 				$('#getStatusBtn').html('Get Status');
+				$('#hideLink').html('');
 			}
 			
 		</script>
