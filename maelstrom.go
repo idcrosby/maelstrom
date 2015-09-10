@@ -30,15 +30,18 @@ var ErrorLog *log.Logger
 func init() {
 
 	// Read Config file
-	file, err := os.Open("conf.json")
-	check(err)
-	decoder := json.NewDecoder(file)
 	config = Config{}
-	err = decoder.Decode(&config)
-	check(err)
+	file, err := os.Open("conf.json")
+	if err != nil {
+		fmt.Println("No config file found.")
+	} else {
+		decoder := json.NewDecoder(file)
+		err = decoder.Decode(&config)
+		check(err)
+	}
 	
 	// init loggers
-		var writer io.Writer
+	var writer io.Writer
 	if len(config.LogFileName) > 0 {
 		// Create Directory
 		// os.MkdirAll(, 0777)
@@ -57,12 +60,6 @@ func init() {
 	InfoLog = log.New(writer, "INFO: ", log.LstdFlags)
 	ErrorLog = log.New(writer, "ERROR: ", log.LstdFlags)
 
-	// Initiate throttle
-	throttle = make(chan int, config.EmailThrottle)
-
-	buildServersMap()
-
-	initiatePing()
 }
 
 func main() {
@@ -71,6 +68,13 @@ func main() {
 	flag.BoolVar(&Debug, "debug", true, "Turn on debug logging.")
 	flag.StringVar(&Password, "password", "", "Password needed by users to send emails.")
 	flag.Parse()
+
+	// Initiate throttle
+	throttle = make(chan int, config.EmailThrottle)
+
+	buildServersMap()
+
+	initiatePing()
 
 	http.HandleFunc("/", errorHandler(rootHandler))
 	http.HandleFunc("/messages/", errorHandler(messageHandler))
