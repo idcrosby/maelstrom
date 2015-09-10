@@ -12,8 +12,7 @@
 		},
 		{
 			"name":"Mandrill",
-			"pingUrl":"https://mandrillapp.com/api/1.0/users/ping.json",
-			"url":"https://mandrillapp.com/api/1.0/messages/send.json",
+			"url":"https://mandrillapp.com/api/1.0/",
 			"apiKey":""
 		},
 		{

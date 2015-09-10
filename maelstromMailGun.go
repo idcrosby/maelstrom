@@ -58,6 +58,7 @@ func (s *MailGunServer) Ping() bool {
 
 	if Debug {
 		InfoLog.Println("Sending Request " + r.URL.String())
+		InfoLog.Println("api key:" + mailGunKey + ".")
 	}
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
