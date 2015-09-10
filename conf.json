@@ -22,11 +22,6 @@
 			"name":"AWS",
 			"url":"",
 			"apiKey":""
-		},
-		{
-			"name":"Mock",
-			"url":"",
-			"apiKey":""
 		}
 	],
 	"pingPeriod":60,

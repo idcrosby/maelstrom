@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"google.golang.org/cloud/compute/metadata"
+	"gopkg.in/mgo.v2/bson"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -44,7 +45,7 @@ func init() {
 	
 	// Check if running on GCE
 	if metadata.OnGCE() {
-		fmt.Println("Running on GCE")
+		fmt.Println("Running on GCE. Pulling attributes.")
 
 		for s, _ := range Servers {
 			att, _ := metadata.InstanceAttributes()
@@ -81,7 +82,6 @@ func init() {
 
 	InfoLog = log.New(writer, "INFO: ", log.LstdFlags)
 	ErrorLog = log.New(writer, "ERROR: ", log.LstdFlags)
-
 }
 
 func main() {
@@ -274,6 +274,9 @@ func buildServersMap() {
 			}
 			continue
 		}
+		if len(conf.ApiKey) > 0 {
+			server.SetKey(conf.ApiKey)
+		}
 		Servers[server] = false
 		checkServers()
 	}
@@ -333,8 +336,29 @@ func check(err error) {
 	}
 }
 
+type Datastore interface {
+	StoreTemplate(Template) string
+	RetrieveTemplate(string) Template
+	Status() bool
+	StoreContact(Contact) string
+	RetrieveContact(string) Contact
+}
+
+type Contact struct {
+	Id bson.ObjectId    `bson:"_id,omitempty"`
+	Email string
+	Name string
+	Tags []string
+}
+
+type Template struct {
+	Id bson.ObjectId   `bson:"_id,omitempty"`
+	Message string
+}
+
 // Generic Message object
 type Message struct {
+	Id      int      `json:"id"`
 	To      []string `json:"to"`
 	Subject string   `json:"subject"`
 	From    string   `json:"from"`
