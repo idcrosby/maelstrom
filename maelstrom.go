@@ -26,6 +26,7 @@ var Servers map[MailSender]bool
 var emailRegex string = "\\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,4}\\b"
 var indexHtml = "resources/html/index.html"
 var throttle chan int
+var datastore Datastore
 var InfoLog *log.Logger
 var ErrorLog *log.Logger
 
@@ -48,14 +49,6 @@ func init() {
 	if metadata.OnGCE() {
 		fmt.Println("Running on GCE. Pulling attributes.")
 		gce = true
-		att, _ := metadata.InstanceAttributes()
-		if len(att) < 1 {
-			fmt.Println("No Metadata attributes found.")
-		}
-		for _, a := range att {
-			val, _ := metadata.InstanceAttributeValue(a)
-			fmt.Println("Found attribute: " + a + " with value: " + val)
-		}
 	} else {
 		fmt.Println("Not running on GCE.")
 		gce = false
@@ -95,9 +88,18 @@ func main() {
 
 	initiatePing()
 
+	// Create Database
+	datastore = &MongoDatastore{}
+	if datastore.Ping() {
+		InfoLog.Println("MongoDB running.")
+	} else {
+		ErrorLog.Println("MongoDB connection unsuccessful.")
+	}
+
 	http.HandleFunc("/", errorHandler(rootHandler))
 	http.HandleFunc("/messages/", errorHandler(messageHandler))
 	http.HandleFunc("/status", errorHandler(statusHandler))
+	http.HandleFunc("/contacts/", errorHandler(contactsHandler))
 
 	// To Serve CSS and JS files
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
@@ -198,6 +200,24 @@ func statusHandler(w http.ResponseWriter, req *http.Request) {
 	check(err)
 
 	fmt.Fprintf(w, string(statusJson))
+}
+
+func contactsHandler(w http.ResponseWriter, req *http.Request) {
+
+	switch req.Method {
+	case "GET":
+		InfoLog.Println("Get Contact")
+	case "POST":
+		InfoLog.Println("Get Contact")
+	case "PUT":
+		InfoLog.Println("Get Contact")
+	case "DELETE":
+		InfoLog.Println("Get Contact")
+	default:
+		w.WriteHeader(405)
+	}
+	
+	w.WriteHeader(200)	
 }
 
 // Error Handler Wrapper
@@ -345,6 +365,7 @@ type Datastore interface {
 	Status() bool
 	StoreContact(Contact) string
 	RetrieveContact(string) Contact
+	Ping() bool
 }
 
 type Contact struct {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+    "google.golang.org/cloud/compute/metadata"
     "gopkg.in/mgo.v2"
     "gopkg.in/mgo.v2/bson"
 )
@@ -10,6 +11,21 @@ var mongoUrl string = "localhost:27017"
 var dbName string = "test"
 
 type MongoDatastore struct {}
+
+func (db *MongoDatastore) Ping() bool {
+    if gce {
+        mongoUrl, _ = metadata.InstanceAttributeValue("mongoUrl")
+        if Debug {
+            InfoLog.Println("Mongo URL pulled from GCE Metadata: " + mongoUrl)
+        }
+    }
+    session, err := mgo.Dial(mongoUrl)
+    if err != nil {
+        return false
+    }
+    session.Close()
+    return true
+}
 
 func (db *MongoDatastore) StoreTemplate(template Template) string {
     session, err := mgo.Dial(mongoUrl)
