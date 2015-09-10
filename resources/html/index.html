@@ -116,7 +116,10 @@
 				var data = {};
   				for (var i = 0, ii = form.length; i < ii; ++i) {
     				var input = form[i];
-    				if (input.name) {
+    				if (input.name == "to") {
+    					var tos = input.value.split(",");
+    					data[input.name] = tos;
+    				} else if (input.name) {
       					data[input.name] = input.value;
     				}
   				}
@@ -136,10 +139,10 @@
 						responseMessage = "Message Send Successfully.";
 					} else if (status > 499) {
 						$('#responseStatus').addClass("label label-danger");
-						responseMessage = "Server Error Trying to send Message: " + status;
+						responseMessage = "Server Error Trying to send Message. " + status + " : " + xhr.responseText;
 					} else {
 						$('#responseStatus').addClass("label label-warning");
-						responseMessage = "Error Sending Message: " + status;
+						responseMessage = "Error Sending Message. " + status + " : " + xhr.responseText;
 					}
 					$('#responseStatus').html(responseMessage);
 				}
