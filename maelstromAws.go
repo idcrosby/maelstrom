@@ -22,3 +22,8 @@ func (s *AwsServer) Ping() bool {
 func (s *AwsServer) GetName() string {
 	return "AWS"
 }
+
+func (s *AwsServer) SetKey(key string) {
+	// TODO implement
+	return
+}

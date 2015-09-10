@@ -22,3 +22,8 @@ func (s *SendGridServer) Ping() bool {
 func (s *SendGridServer) GetName() string {
 	return "SendGrid"
 }
+
+func (s *SendGridServer) SetKey(key string) {
+	// TODO implement
+	return
+}

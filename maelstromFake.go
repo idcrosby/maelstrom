@@ -21,3 +21,8 @@ func (s *FakeServer) Ping() bool {
 func (s *FakeServer) GetName() string {
 	return "FakeServer"
 }
+
+func (s *FakeServer) SetKey(key string) {
+	// TODO implement
+	return
+}

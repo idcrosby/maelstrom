@@ -9,12 +9,14 @@ import (
 	"net/http"
 )
 
+var mandrillKey string
+
 type MandrillServer struct {
 	Server MailServer
 }
 
 func (s *MandrillServer) Send(message Message) int {
-	mail := MandrillMail{Key: s.Server.ApiKey}
+	mail := MandrillMail{Key: mandrillKey}
 	mail.Message.Text = message.Text
 	mail.Message.Subject = message.Subject
 	mail.Message.From = message.From
@@ -42,7 +44,7 @@ func (s *MandrillServer) Send(message Message) int {
 
 func (s *MandrillServer) Ping() bool {
 
-	var jsonStr = []byte(`{"key":"` + s.Server.ApiKey + `"}`)
+	var jsonStr = []byte(`{"key":"` + mandrillKey + `"}`)
 	res, err := http.Post(s.Server.PingUrl, "application/json", bytes.NewBuffer(jsonStr))
 	if err != nil {
 		if Debug {
@@ -63,6 +65,11 @@ func (s *MandrillServer) Ping() bool {
 
 func (s *MandrillServer) GetName() string {
 	return "Mandrill"
+}
+
+func (s *MandrillServer) SetKey(key string) {
+	mandrillKey = key
+	return
 }
 
 type MandrillMail struct {

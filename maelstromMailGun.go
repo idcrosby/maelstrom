@@ -9,6 +9,8 @@ import (
 	"strconv"
 )
 
+var mailGunKey string
+
 type MailGunServer struct {
 	Server MailServer
 }
@@ -28,7 +30,7 @@ func (s *MailGunServer) Send(message Message) int {
 
 	r, err := http.NewRequest("POST", s.Server.Url, bytes.NewBufferString(data.Encode()))
 	check(err)
-	r.SetBasicAuth("api", s.Server.ApiKey)
+	r.SetBasicAuth("api", mailGunKey)
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 
@@ -71,4 +73,9 @@ func (s *MailGunServer) Ping() bool {
 
 func (s *MailGunServer) GetName() string {
 	return "MailGun"
+}
+
+func (s *MailGunServer) SetKey(key string) {
+	mailGunKey = key
+	return
 }

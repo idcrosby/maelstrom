@@ -2,14 +2,13 @@
 	"mailServers":[
 		{
 			"name":"SendGrid",
-			"pingUrl":"...",
 			"url":"https://api.sendgrid.com/api/mail.send.json",
-			"apiKey":"..."	
+			"apiKey":""
 		},
 		{
 			"name":"MailGun",
 			"pingUrl":"https://api.mailgun.net/v3/samples.mailgun.org/log",
-			"url":"",
+			"url":"https://api.mailgun.net/v3/sandboxad5802cf58064741b713876c7557833b.mailgun.org/messages",
 			"apiKey":"",
 			"pingKey":""
 		},
@@ -18,8 +17,19 @@
 			"pingUrl":"https://mandrillapp.com/api/1.0/users/ping.json",
 			"url":"https://mandrillapp.com/api/1.0/messages/send.json",
 			"apiKey":""
+		},
+		{
+			"name":"AWS",
+			"url":"",
+			"apiKey":""
+		},
+		{
+			"name":"Mock",
+			"url":"",
+			"apiKey":""
 		}
 	],
 	"pingPeriod":60,
-	"emailThrottle":2
+	"emailThrottle":2,
+	"logFileName":""
 }

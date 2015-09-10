@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"google.golang.org/cloud/compute/metadata"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -26,20 +27,33 @@ var throttle chan int
 var InfoLog *log.Logger
 var ErrorLog *log.Logger
 
-
 func init() {
 
 	// Read Config file
 	config = Config{}
 	file, err := os.Open("conf.json")
 	if err != nil {
-		fmt.Println("No config file found.")
+		fmt.Println("No config file found. Using Defaults")
+		config.PingPeriod = 60
+		config.EmailThrottle = 5
 	} else {
 		decoder := json.NewDecoder(file)
 		err = decoder.Decode(&config)
 		check(err)
 	}
 	
+	// Check if running on GCE
+	if metadata.OnGCE() {
+		fmt.Println("Running on GCE")
+
+		for s, _ := range Servers {
+			apiKey, _ := metadata.InstanceAttributeValue(s.GetName())
+			s.SetKey(apiKey)
+		}
+	} else {
+		fmt.Println("Not running on GCE.")
+	}
+
 	// init loggers
 	var writer io.Writer
 	if len(config.LogFileName) > 0 {
@@ -205,6 +219,7 @@ type MailSender interface {
 	Send(Message) int
 	Ping() bool
 	GetName() string
+	SetKey(string)
 }
 
 // Select a MailServer which is currently 'up'
