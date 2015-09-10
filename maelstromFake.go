@@ -15,7 +15,7 @@ func (s *FakeServer) Send(message Message) int {
 }
 
 func (s *FakeServer) Ping() bool {
-	return true
+	return false
 }
 
 func (s *FakeServer) GetName() string {

@@ -47,6 +47,14 @@ func init() {
 		fmt.Println("Running on GCE")
 
 		for s, _ := range Servers {
+			att, _ := metadata.InstanceAttributes()
+			if len(att) < 1 {
+				fmt.Println("No Metadata attributes found.")
+			}
+			for _, a := range att {
+				val, _ := metadata.InstanceAttributeValue(a)
+				fmt.Println("Found attribute: " + a + " with value: " + val)
+			}
 			apiKey, _ := metadata.InstanceAttributeValue(s.GetName())
 			s.SetKey(apiKey)
 		}
