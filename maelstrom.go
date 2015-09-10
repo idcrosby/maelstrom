@@ -273,7 +273,7 @@ func buildServersMap() {
 		}
 		var apiKey string
 		if gce {
-			apiKey, _ := metadata.InstanceAttributeValue(conf.Name)
+			apiKey, _ = metadata.InstanceAttributeValue(conf.Name)
 			fmt.Println("Setting api key from GCE " + apiKey)
 		} else {
 			apiKey = conf.ApiKey
