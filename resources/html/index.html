@@ -135,13 +135,19 @@
 					var status = xhr.status;
 					var responseMessage = "";
 					if (status > 199 && status < 300) {
+						$('#responseStatus').removeClass("label label-danger");
 						$('#responseStatus').addClass("label label-success");
-						responseMessage = "Message Send Successfully.";
+						$('#responseStatus').removeClass("label label-warning")
+						responseMessage = "Message Sent Successfully.";
 					} else if (status > 499) {
 						$('#responseStatus').addClass("label label-danger");
+						$('#responseStatus').removeClass("label label-success");
+						$('#responseStatus').removeClass("label label-warning")
 						responseMessage = "Server Error Trying to send Message. " + status + " : " + xhr.responseText;
 					} else {
-						$('#responseStatus').addClass("label label-warning");
+						$('#responseStatus').removeClass("label label-danger");
+						$('#responseStatus').removeClass("label label-success");
+						$('#responseStatus').addClass("label label-warning")
 						responseMessage = "Error Sending Message. " + status + " : " + xhr.responseText;
 					}
 					$('#responseStatus').html(responseMessage);
