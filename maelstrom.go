@@ -6,14 +6,10 @@ import (
 	"fmt"
 	"google.golang.org/cloud/compute/metadata"
 	"gopkg.in/mgo.v2/bson"
-	"html/template"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"os"
-	"regexp"
 	"time"
 )
 
@@ -81,6 +77,14 @@ func main() {
 	flag.StringVar(&Password, "password", "", "Password needed by users to send emails.")
 	flag.Parse()
 
+	// Check GCE for Password
+	if gce {
+		pw, _ = metadata.InstanceAttributeValue("emailPW")
+		if len(pw) > 0 {
+			Password = pw
+		}
+	}
+
 	// Initiate throttle
 	throttle = make(chan int, config.EmailThrottle)
 
@@ -115,172 +119,6 @@ func main() {
 	}
 
 	http.ListenAndServe(":"+port, nil)
-}
-
-// ***********
-// Handlers
-// ***********
-
-// Handler for root resource, returns web page
-func rootHandler(w http.ResponseWriter, req *http.Request) {
-	var rootTemplate, err = template.ParseFiles(indexHtml)
-	check(err)
-	rootTemplate.Execute(w, nil)
-}
-
-// Handler for Messages resource. Verfies received data and sends email
-func messageHandler(w http.ResponseWriter, req *http.Request) {
-
-	// Parse Data
-	if req.Method == "POST" {
-
-		values := req.URL.Query()
-		password := values.Get("password")
-		if password != Password {
-			w.WriteHeader(403)
-			return
-		}
-
-		// Build Message
-		bytes, err := ioutil.ReadAll(req.Body)
-		check(err)
-		var email Message
-		err = json.Unmarshal(bytes, &email)
-		if err != nil {
-			http.Error(w, "Invalid JSON", 400)
-			return
-		}
-
-		// Validate Fields
-		for _, to := range email.To {
-			matchTo, _ := regexp.MatchString(emailRegex, to)
-			if !matchTo {
-				if Debug {
-					ErrorLog.Println("To address not valid email: " + to)
-				}
-				http.Error(w, "Invalid 'To' Email Address.", 400)
-				return
-			}
-		}
-		matchFrom, _ := regexp.MatchString(emailRegex, email.From)
-		if !matchFrom {
-			if Debug {
-				ErrorLog.Println("From address not valid email.")
-			}
-			http.Error(w, "Invalid 'From' Email Address.", 400)
-			return
-		}
-
-		sender := chooseMailSender()
-		if sender == nil {
-			http.Error(w, "No Mail Server Available.", 500)
-			return
-		}
-		if ! requestSlot() {
-			http.Error(w, "Over throttle limit.", 403)
-			return
-		}
-		status := sender.Send(email)
-		w.WriteHeader(status)
-		return
-	}
-
-	// Other methods not supported
-	w.WriteHeader(405)
-}
-
-// Handler to return status of MailServers
-func statusHandler(w http.ResponseWriter, req *http.Request) {
-
-	result := make(map[string]bool)
-	for s, b := range Servers {
-		result[s.GetName()] = b
-	}
-	statusJson, err := json.Marshal(result)
-	check(err)
-
-	fmt.Fprintf(w, string(statusJson))
-}
-
-func contactsHandler(w http.ResponseWriter, req *http.Request) {
-
-	values := req.URL.Query()
-	id := values.Get("id")
-
-	switch req.Method {
-	case "GET":
-		if Debug {
-			InfoLog.Println("Get Contact")
-		}
-		contact := datastore.RetrieveContact(id)
-		jsonContact, err := json.Marshal(contact)
-		if err != nil {
-			ErrorLog.Println("Error marshalling Contact.")
-			w.WriteHeader(400)
-			return
-		}
-		fmt.Fprintf(w, string(jsonContact))
-		return
-	case "POST":
-		if Debug {
-			InfoLog.Println("Create Contact")
-		}
-		bytes, err := ioutil.ReadAll(req.Body)
-		check(err)
-		var contact Contact
-		err = json.Unmarshal(bytes, &contact)
-		if err != nil {
-			http.Error(w, "Invalid JSON", 400)
-			return
-		}
-		id := datastore.StoreContact(contact)
-		fmt.Fprintf(w, "{'id':" + id + "}")
-	case "PUT":
-		if Debug {
-			InfoLog.Println("Update Contact")
-		}
-		bytes, err := ioutil.ReadAll(req.Body)
-		check(err)
-		var contact Contact
-		err = json.Unmarshal(bytes, &contact)
-		if err != nil {
-			http.Error(w, "Invalid JSON", 400)
-			return
-		}
-		id := datastore.UpdateContact(contact)
-		fmt.Fprintf(w, "{'id':" + id + "}")
-	case "DELETE":
-		if Debug {
-			InfoLog.Println("Delete Contact")
-		}
-		if datastore.DeleteContact(id) {
-			w.WriteHeader(200)
-		} else {
-			ErrorLog.Println("Error deleting Contact: " + id)
-			w.WriteHeader(400)
-		}
-	default:
-		w.WriteHeader(405)
-	}
-}
-
-// Error Handler Wrapper
-func errorHandler(fn http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		if Debug {
-			InfoLog.Println(time.Now().String())
-			reqDump, _ := httputil.DumpRequest(req, true)
-			InfoLog.Printf("Request: %s\n\n", reqDump)
-		}
-		defer func() {
-			if e, ok := recover().(error); ok {
-				w.WriteHeader(500)
-				ErrorLog.Print("error: ")
-				ErrorLog.Println(e)
-			}
-		}()
-		fn(w, req)
-	}
 }
 
 // Generic Interface for a Mail Server
@@ -405,10 +243,10 @@ func check(err error) {
 
 type Datastore interface {
 	Status() bool
-	StoreContact(Contact) string
+	StoreContact(Contact) Contact
 	DeleteContact(string) bool
-	UpdateContact(Contact) string
-	RetrieveContact(string) Contact
+	UpdateContact(Contact) Contact
+	RetrieveContactsBy(string, string) []Contact
 	Ping() bool
 }
 

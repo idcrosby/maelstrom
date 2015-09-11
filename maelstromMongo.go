@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
     "google.golang.org/cloud/compute/metadata"
     "gopkg.in/mgo.v2"
     "gopkg.in/mgo.v2/bson"
@@ -27,59 +26,98 @@ func (db *MongoDatastore) Ping() bool {
     return true
 }
 
-func (db *MongoDatastore) StoreContact(contact Contact) string {
+func (db *MongoDatastore) StoreContact(contact Contact) Contact {
     session, err := mgo.Dial(mongoUrl)
     check(err)
     defer session.Close()
 
     // Optional. Switch the session to a monotonic behavior.
-    session.SetMode(mgo.Monotonic, true)
+    // session.SetMode(mgo.Monotonic, true)
 
-    objectId := bson.NewObjectId()
-    contact.Id = objectId
+    contact.Id = bson.NewObjectId()
     c := session.DB(dbName).C("contact")
     err = c.Insert(&contact)
     if err != nil {
-            log.Fatal(err)
+        ErrorLog.Println("Error storing Contact: " + contact.Name)
+        return Contact{}
     }
 
-    return objectId.Hex()
+    return contact
 }
 
-func (db *MongoDatastore) UpdateContact(contact Contact) string {
+func (db *MongoDatastore) UpdateContact(contact Contact) Contact {
     session, err := mgo.Dial(mongoUrl)
     check(err)
     defer session.Close()
 
     // Optional. Switch the session to a monotonic behavior.
-    session.SetMode(mgo.Monotonic, true)
+    // session.SetMode(mgo.Monotonic, true)
 
-    objectId := bson.NewObjectId()
-    contact.Id = objectId
     c := session.DB(dbName).C("contact")
-    err = c.Insert(&contact)
+    err = c.UpdateId(contact.Id, &contact)
     if err != nil {
-            log.Fatal(err)
+        return Contact{}
     }
 
-    return objectId.Hex()
+    return contact
 }
 
-func (db *MongoDatastore) RetrieveContact(id string) Contact {
+// func (db *MongoDatastore) RetrieveContact(id string) Contact {
+//     session, err := mgo.Dial(mongoUrl)
+//     check(err)
+//     defer session.Close()
+
+//     // Optional. Switch the session to a monotonic behavior.
+//     session.SetMode(mgo.Monotonic, true)
+
+//     objectId := bson.ObjectIdHex(id)
+//     c := session.DB(dbName).C("contact")
+
+//     result := Contact{}
+//     err = c.Find(bson.M{"_id": objectId}).One(&result)
+//     if err != nil {
+//             log.Fatal(err)
+//     }
+
+//     return result
+// }
+
+// func (db *MongoDatastore) RetrieveContactsByTag(tag string) []Contact {
+//     session, err := mgo.Dial(mongoUrl)
+//     check(err)
+//     defer session.Close()
+
+//     // Optional. Switch the session to a monotonic behavior.
+//     session.SetMode(mgo.Monotonic, true)
+
+//     c := session.DB(dbName).C("contact")
+
+//     result := []Contact{}
+//     err = c.Find(bson.M{"tag": tag}).All(&result)
+//     if err != nil {
+//             log.Fatal(err)
+//     }
+
+//     return result
+// }
+
+func (db *MongoDatastore) RetrieveContactsBy(param string, value string) []Contact {
     session, err := mgo.Dial(mongoUrl)
     check(err)
     defer session.Close()
 
     // Optional. Switch the session to a monotonic behavior.
-    session.SetMode(mgo.Monotonic, true)
+    // session.SetMode(mgo.Monotonic, true)
 
-    objectId := bson.ObjectIdHex(id)
     c := session.DB(dbName).C("contact")
 
-    result := Contact{}
-    err = c.Find(bson.M{"_id": objectId}).One(&result)
+    result := []Contact{}
+    err = c.Find(bson.M{param: value}).All(&result)
     if err != nil {
-            log.Fatal(err)
+         if Debug {
+            InfoLog.Printf("Cannot retrieve contact where %s = %s \n", param, value)
+        }
+        return []Contact{}
     }
 
     return result
@@ -91,16 +129,13 @@ func (db *MongoDatastore) DeleteContact(id string) bool {
     defer session.Close()
 
     // Optional. Switch the session to a monotonic behavior.
-    session.SetMode(mgo.Monotonic, true)
+    // session.SetMode(mgo.Monotonic, true)
 
     objectId := bson.ObjectIdHex(id)
     c := session.DB(dbName).C("contact")
-
-    result := Contact{}
-    // TODO Delete...
-    err = c.Find(bson.M{"_id": objectId}).One(&result)
+    err = c.RemoveId(objectId)
     if err != nil {
-            log.Fatal(err)
+         return false
     }
 
     return true
