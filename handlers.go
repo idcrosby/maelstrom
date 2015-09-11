@@ -68,7 +68,7 @@ func messageHandler(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "No Mail Server Available.", 500)
 			return
 		}
-		if ! requestSlot() {
+		if !requestSlot() {
 			http.Error(w, "Over throttle limit.", 403)
 			return
 		}
@@ -100,20 +100,20 @@ func contactsHandler(w http.ResponseWriter, req *http.Request) {
 	id := values.Get("id")
 	tag := values.Get("tag")
 	name := values.Get("name")
-	
+
 	path := req.URL.Path
 	pieces := strings.Split(path, "/")
-	
+
 	// If ID is in Path it takes precedence
-	if len(pieces) > 2 {
+	if len(pieces) > 2 && len(pieces[2]) > 0 {
 		id = pieces[2]
 	}
 
 	if len(id) > 0 {
 		if !bson.IsObjectIdHex(id) {
-        	w.WriteHeader(404)
-        	return
-    	}
+			w.WriteHeader(404)
+			return
+		}
 	}
 
 	switch req.Method {
@@ -123,15 +123,15 @@ func contactsHandler(w http.ResponseWriter, req *http.Request) {
 		}
 		var contacts []Contact
 		if len(id) > 0 {
-			contacts = datastore.RetrieveContactsBy("_id", id)
-			// contacts = make([]Contact, 1, 1)
-			// contacts[0] = contact
+			contacts = datastore.RetrieveContactsBy("id", id)
 		} else if len(tag) > 0 {
 			contacts = datastore.RetrieveContactsBy("tag", tag)
 		} else if len(name) > 0 {
 			contacts = datastore.RetrieveContactsBy("name", name)
+		} else {
+			// Fetch All
 		}
-		
+
 		jsonContacts, err := json.Marshal(contacts)
 		if err != nil {
 			ErrorLog.Println("Error marshalling Contacts.")
@@ -139,8 +139,8 @@ func contactsHandler(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-    	w.WriteHeader(200)
-   		fmt.Fprintf(w, "%s", jsonContacts)
+		w.WriteHeader(200)
+		fmt.Fprintf(w, "%s", jsonContacts)
 	case "POST":
 		if Debug {
 			InfoLog.Println("Create Contact")
@@ -156,8 +156,8 @@ func contactsHandler(w http.ResponseWriter, req *http.Request) {
 		result := datastore.StoreContact(contact)
 		jsonContact, _ := json.Marshal(result)
 		w.Header().Set("Content-Type", "application/json")
-    	w.WriteHeader(200)
-    	fmt.Fprintf(w, "%s", jsonContact)
+		w.WriteHeader(200)
+		fmt.Fprintf(w, "%s", jsonContact)
 	case "PUT":
 		if Debug {
 			InfoLog.Println("Update Contact")
@@ -173,8 +173,8 @@ func contactsHandler(w http.ResponseWriter, req *http.Request) {
 		result := datastore.UpdateContact(contact)
 		jsonContact, _ := json.Marshal(result)
 		w.Header().Set("Content-Type", "application/json")
-    	w.WriteHeader(200)
-    	fmt.Fprintf(w, "%s", jsonContact)
+		w.WriteHeader(200)
+		fmt.Fprintf(w, "%s", jsonContact)
 	case "DELETE":
 		if Debug {
 			InfoLog.Println("Delete Contact")

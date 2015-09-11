@@ -27,7 +27,7 @@ func (s *MandrillServer) Send(message Message) int {
 	jsonBuff, err := json.Marshal(mail)
 	check(err)
 
-	r, err := http.NewRequest("POST", s.Server.Url + "messages/send.json", bytes.NewBuffer(jsonBuff))
+	r, err := http.NewRequest("POST", s.Server.Url+"messages/send.json", bytes.NewBuffer(jsonBuff))
 	check(err)
 	r.Header.Add("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(r)
@@ -43,14 +43,12 @@ func (s *MandrillServer) Send(message Message) int {
 }
 
 func (s *MandrillServer) Ping() bool {
-	InfoLog.Println("Pinging Mandrill")
 
 	var jsonStr = []byte(`{"key":"` + mandrillKey + `"}`)
 	if Debug {
 		InfoLog.Println("Sending Request " + s.Server.Url + "users/ping.json")
-		InfoLog.Println("api key:" + mandrillKey + ".")
 	}
-	res, err := http.Post(s.Server.Url + "users/ping.json", "application/json", bytes.NewBuffer(jsonStr))
+	res, err := http.Post(s.Server.Url+"users/ping.json", "application/json", bytes.NewBuffer(jsonStr))
 	if err != nil {
 		if Debug {
 			ErrorLog.Println("Mandrill ping failed: ", err)

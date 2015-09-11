@@ -101,7 +101,6 @@ func buildTestConfig() Config {
 	return c
 }
 
-
 // Mocks
 
 type MockServer struct {

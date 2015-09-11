@@ -15,6 +15,7 @@ func (s *AwsServer) Send(message Message) int {
 }
 
 func (s *AwsServer) Ping() bool {
+
 	// TODO Implement
 	return false
 }

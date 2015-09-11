@@ -43,10 +43,14 @@ func init() {
 
 	// Check if running on GCE
 	if metadata.OnGCE() {
-		fmt.Println("Running on GCE. Pulling attributes.")
+		if Debug {
+			fmt.Println("Running on GCE. Pulling attributes.")
+		}
 		gce = true
 	} else {
-		fmt.Println("Not running on GCE.")
+		if Debug {
+			fmt.Println("Not running on GCE.")
+		}
 		gce = false
 	}
 	// init loggers
@@ -54,7 +58,7 @@ func init() {
 	if len(config.LogFileName) > 0 {
 		// Create Directory
 		// os.MkdirAll(, 0777)
-		logFile, err := os.OpenFile(config.LogFileName, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0666)
+		logFile, err := os.OpenFile(config.LogFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			fmt.Println("Error opening log file: ", err)
 			writer = os.Stdout
@@ -174,10 +178,8 @@ func buildServersMap() {
 		var apiKey string
 		if gce {
 			apiKey, _ = metadata.InstanceAttributeValue(conf.Name)
-			fmt.Println("Setting api key from GCE " + apiKey)
 		} else {
 			apiKey = conf.ApiKey
-			fmt.Println("Setting api key from Config " + apiKey)
 		}
 		server.SetKey(apiKey)
 		Servers[server] = false
@@ -215,7 +217,7 @@ func checkServers() {
 
 // Enforce Throttling by requiring a 'slot' to send
 func requestSlot() bool {
-	
+
 	if len(throttle) >= cap(throttle) {
 		if Debug {
 			InfoLog.Println("Request blocked. No open slots.")
@@ -225,7 +227,7 @@ func requestSlot() bool {
 	throttle <- 1
 	slotTimer := time.NewTimer(time.Second * 1)
 	go func() {
-		<- slotTimer.C
+		<-slotTimer.C
 		_ = <-throttle
 	}()
 	return true
@@ -249,10 +251,10 @@ type Datastore interface {
 }
 
 type Contact struct {
-	Id bson.ObjectId    `json:"id" bson:"_id,omitempty"`
+	Id    bson.ObjectId `json:"id" bson:"_id,omitempty"`
 	Email string        `json:"email"`
-	Name string         `json:"name"`
-	Tags []string       `json:"tags"`
+	Name  string        `json:"name"`
+	Tags  []string      `json:"tags"`
 }
 
 // Generic Message object
@@ -275,16 +277,16 @@ type MailServer struct {
 
 // Structure for Applications Configuration
 type Config struct {
-	MailServers []MailServer
-	PingPeriod  int
+	MailServers   []MailServer
+	PingPeriod    int
 	EmailThrottle int
-	LogFileName string
+	LogFileName   string
 }
 
 // Structure of Server Status
 type Status struct {
 	ServerStatus []struct {
-		Name string
+		Name   string
 		Status bool
 	}
 }

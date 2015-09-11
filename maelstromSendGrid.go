@@ -15,6 +15,8 @@ func (s *SendGridServer) Send(message Message) int {
 }
 
 func (s *SendGridServer) Ping() bool {
+	InfoLog.Println("Pinging SendGrid")
+
 	// TODO implement
 	return false
 }
