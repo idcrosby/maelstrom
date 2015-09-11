@@ -79,7 +79,7 @@ func main() {
 
 	// Check GCE for Password
 	if gce {
-		pw, _ = metadata.InstanceAttributeValue("emailPW")
+		pw, _ := metadata.InstanceAttributeValue("emailPW")
 		if len(pw) > 0 {
 			Password = pw
 		}
@@ -165,8 +165,6 @@ func buildServersMap() {
 			server = &MandrillServer{conf}
 		} else if conf.Name == "AWS" {
 			server = &AwsServer{conf}
-		} else if conf.Name == "Mock" {
-			server = &FakeServer{conf}
 		} else {
 			if Debug {
 				ErrorLog.Println("Unknown MailServer: " + conf.Name)
